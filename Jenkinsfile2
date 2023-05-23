@@ -1,0 +1,61 @@
+pipeline {
+    agent {
+        docker {
+            image 's487187/ium:1'
+            args '-u root:root'
+        }
+    }
+    
+    parameters {
+        buildSelector(
+            defaultSelector: lastSuccessful(),
+            description: 'Which build to use for copying artifacts',
+            name: 'BUILD_SELECTOR'
+        )
+    }
+
+    stages {
+        stage('Clone Git Repository') {
+            steps {
+                script {
+                    try {
+                        git 'https://git.wmi.amu.edu.pl/s487187/ium_487187.git'
+                    } catch (err) {
+                        error "Failed to clone repository: ${err.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Copy Artifact') {
+            steps {
+                script {
+                    try {
+                        copyArtifacts(
+                            projectName: 's487187-create-dataset',
+                            selector: buildParameter('BUILD_SELECTOR')
+                        )
+                    } catch (err) {
+                        error "Failed to copy artifact: ${err.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Count Lines') {
+            steps {
+                sh '''
+                    #!/bin/bash
+                    
+                    python3 count_lines.py --input_file olympics-124-years-datasettill-2020/Athletes_winter_games.csv > output.txt
+                '''
+            }
+        }
+
+        stage('Archive Artifact') {
+            steps {
+                archiveArtifacts 'output.txt'
+            }
+        }
+    }
+}

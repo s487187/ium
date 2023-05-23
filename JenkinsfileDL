@@ -1,0 +1,37 @@
+pipeline {
+    agent {
+        docker {
+            image 'python:3.11'
+            args '-v /root/.cache:/root/.cache -u root -v /tmp/mlruns:/tmp/mlruns -v /mlruns:/mlruns'
+        }
+    }
+    parameters {
+        string(name: 'EPOCHS', defaultValue: '10', description: 'Liczba Epok')
+    }
+    stages {
+        stage('Preparation') {
+            steps {
+                sh 'pip install pandas tensorflow scikit-learn imbalanced-learn sacred pymongo mlflow'
+            }
+        }
+        stage('Pobierz dane') {
+            steps {
+                script {
+                    copyArtifacts(projectName: 's487187-create-dataset', fingerprintArtifacts: true)
+                }
+            }
+        }
+        stage('Trenuj model') {
+            steps {
+                script {
+                    sh "python3 train.py"
+                }
+            }
+        }
+        stage('Zarchiwizuj model') {
+            steps {
+                archiveArtifacts artifacts: 'model.h5', fingerprint: true
+            }
+        }
+    }
+}

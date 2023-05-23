@@ -1,0 +1,12 @@
+name: s487187-training
+
+docker_env:
+  image: python:3.11
+  volumes: [ "/root/.cache:/root/.cache" ]
+  user_env_vars: [ "SACRED_IGNORE_GIT" ]
+
+entry_points:
+  main:
+    parameters:
+      epochs: int
+    command: "python train.py --epochs {epochs}"

@@ -1,0 +1,42 @@
+pipeline {
+    agent {
+        docker {
+            image 'python:3.11'
+            args '-v /root/.cache:/root/.cache -u root'
+        }
+    }
+    // parameters {
+    //     buildSelector(name: 'BUILD_NUMBER', description: 'Wybierz numer buildu', defaultSelector: lastSuccessful())
+    // }
+    stages {
+        stage('Pobierz dane') {
+            steps {
+                script {
+                    copyArtifacts(projectName: 's487187-create-dataset', fingerprintArtifacts: true)
+                }
+            }
+        }
+        stage('Pobierz model') {
+            steps {
+                copyArtifacts(projectName: 's487187-training/master', selector: lastSuccessful()) //specific("${params.BUILD_NUMBER}")
+            }
+        }
+        stage('Przygotowanie') {
+            steps {
+                sh 'pip install pandas tensorflow scikit-learn matplotlib sacred pymongo'
+            }
+        }
+        stage('Ewaluuj model') {
+            steps {
+                script {
+                    sh "python3 evaluate.py"
+                }
+            }
+        }
+        stage('Zarchiwizuj wyniki') {
+            steps {
+                archiveArtifacts artifacts: 'metrics.txt,plot.png', fingerprint: true
+            }
+        }
+    }
+}

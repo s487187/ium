@@ -1,0 +1,12 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python prepare_data.py
+    deps:
+    - path: data.csv
+      md5: 74eca081d7e8fd4757990db33d88db67
+      size: 6408427
+    outs:
+    - path: processed_data.csv
+      md5: 3996b861e9790e8701b85c8fcebc5728
+      size: 2892974

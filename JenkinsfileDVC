@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    tools {
+        git 'Default'
+    }
+
+    stages {
+        stage('Setup Git') {
+            steps {
+                sh """
+                git config user.email "jakzar3@st.amu.edu.pl"
+                git config user.name "s487187"
+                """
+            }
+        }
+        
+        stage('Clone Repository') {
+            steps {
+                script {
+                    try {
+                        git url: 'https://git.wmi.amu.edu.pl/s487187/ium_487187'
+                    } catch (Exception err) {
+                        error "Failed to clone repository: ${err.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Setup Python') {
+            steps {
+                sh '''
+                curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+                python3 get-pip.py --user
+                '''
+            }
+        }
+
+        stage('Install DVC') {
+            steps {
+                sh 'python3 -m pip install --user dvc'
+            }
+        }
+
+        stage('Clean DVC Cache') {
+            steps {
+                sh 'PATH=$PATH:~/.local/bin/ dvc gc -c -w -f'
+            }
+        }
+
+        stage('Configure DVC Remote') {
+            steps {
+                sh 'PATH=$PATH:~/.local/bin/ dvc remote add -d new_storage /home/user/dvc_storage'
+            }
+        }
+
+        stage('Pull DVC Files') {
+            steps {
+                sh 'PATH=$PATH:~/.local/bin/ dvc pull -f'
+            }
+        }
+
+        stage('Run DVC Pipeline') {
+            steps {
+                sh 'PATH=$PATH:~/.local/bin/ dvc reproduce'
+            }
+        }
+
+        stage('Push DVC Files') {
+            steps {
+                sh 'PATH=$PATH:~/.local/bin/ dvc push'
+            }
+        }
+    }
+}
