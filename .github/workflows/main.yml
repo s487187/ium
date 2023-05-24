@@ -18,21 +18,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v1 
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push
+      - name: Build 
+        id: docker_build
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/training-model:latest
+          push: false
+          tags: training-model:latest
+          load: true  
 
       - name: Run training
-        run: docker run ${{ secrets.DOCKERHUB_USERNAME }}/training-model:latest python3 train.py --epochs ${{ github.event.inputs.epochs }}
+        run: docker run training-model:latest python3 train.py --epochs ${{ github.event.inputs.epochs }}
 
   evaluate:
     needs: build-and-train
