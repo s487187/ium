@@ -1,0 +1,17 @@
+name: ium
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+    - mlflow
+    - keras
+    - pandas
+    - sacred
+    - pymongo
+    - tensorflow
+    - numpy
+    - scikit-learn
+    - matplotlib
+prefix: /root/anaconda3

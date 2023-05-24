@@ -1,0 +1,115 @@
+pipeline {
+    agent any
+
+    tools {
+        git 'Default'
+    }
+
+    stages {
+        stage('Setup Git') {
+            steps {
+                sh """
+                git config user.email "jakzar3@st.amu.edu.pl"
+                git config user.name "s487187"
+                """
+            }
+        }
+        
+        stage('Clone Repository') {
+            steps {
+                script {
+                    try {
+                        git url: 'https://git.wmi.amu.edu.pl/s487187/ium_487187'
+                    } catch (Exception err) {
+                        error "Failed to clone repository: ${err.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Setup Python') {
+            steps {
+                sh '''
+                curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+                python3 get-pip.py --user
+                '''
+            }
+        }
+
+        stage('Install OpenSSL Locally') {
+            steps {
+                sh '''
+                wget https://www.openssl.org/source/openssl-1.1.1k.tar.gz
+                tar -zxf openssl-1.1.1k.tar.gz
+                cd openssl-1.1.1k
+                ./config --prefix=$HOME/local/openssl --openssldir=$HOME/local/openssl
+                make
+                make install
+                '''
+            }
+        }
+
+        stage('Install Python Dependencies') {
+            steps {
+                sh '''
+                export PATH=$HOME/local/openssl/bin:$PATH
+                export LD_LIBRARY_PATH=$HOME/local/openssl/lib
+                curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+                python3 get-pip.py --user
+                python3 -m pip install --user \'dvc[ssh]\'
+                python3 -m pip install --user cryptography==3.4.7  # specify a version here
+                '''
+            }
+        }
+
+        stage('Update OpenSSL and Cryptography') {
+            steps {
+                sh '''
+                python3 -m pip uninstall -y cryptography
+                python3 -m pip install cryptography
+                '''
+            }
+        }
+
+        stage('Install DVC') {
+            steps {
+                sh 'python3 -m pip install --user \'dvc[ssh]\''
+            }
+        }
+
+        stage('Clean DVC Cache') {
+            steps {
+                sh 'PATH=$PATH:$HOME/.local/bin/ dvc gc -c -w -f'
+            }
+        }
+
+        stage('Configure DVC Remote') {
+            steps {
+                withCredentials(
+                    [sshUserPrivateKey(credentialsId: '48ac7004-216e-4260-abba-1fe5db753e18', keyFileVariable: 'IUM_SFTP_KEY', passphraseVariable: '', usernameVariable: '')]) {
+                                sh 'PATH=$PATH:$HOME/.local/bin/ dvc remote add -d ium_ssh_remote ssh://ium-sftp@tzietkiewicz.vm.wmi.amu.edu.pl/ium-sftp'
+                                sh 'PATH=$PATH:$HOME/.local/bin/ dvc remote modify --local ium_ssh_remote keyfile $IUM_SFTP_KEY'
+                                sh 'PATH=$PATH:$HOME/.local/bin/ dvc pull'
+                            }
+            }
+        }
+
+        // stage('Pull DVC Files') {
+        //     steps {
+        //         sh 'PATH=$PATH:~/.local/bin/ dvc pull -f'
+        //     }
+        // }
+
+        stage('Run DVC Pipeline') {
+            steps {
+                sh 'PATH=$PATH:$HOME/.local/bin/ dvc reproduce'
+            }
+        }
+
+        stage('Push DVC Files') {
+            steps {
+                sh 'PATH=$PATH:$HOME/.local/bin/ dvc push'
+            }
+        }
+    }
+}
