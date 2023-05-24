@@ -12,6 +12,6 @@ COPY data.csv /app/data.csv
 WORKDIR /app
 
 RUN export SACRED_IGNORE_GIT=TRUE
-RUN python3 train.py --epochs 10
+RUN python3 train_github.py --epochs 10
 
 CMD ["python3", "predictions.py"]
