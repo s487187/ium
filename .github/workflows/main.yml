@@ -28,7 +28,7 @@ jobs:
           load: true  
 
       - name: Run training
-        run: docker run training-model:latest python3 train.py --epochs ${{ github.event.inputs.epochs }}
+        run: docker run training-model:latest python3 train_github.py --epochs ${{ github.event.inputs.epochs }}
 
   evaluate:
     needs: build-and-train
